@@ -63,6 +63,24 @@
         .icon-container img.selected {
             border-color: #4CAF50;
         }
+
+        #preview-container {
+            width: 90vw;
+            height: 90vw;
+            max-width: 90vh;
+            max-height: 90vh;
+            border: 1px solid #000;
+        }
+
+        #preview-area {
+            width: 100%;
+            height: 100%;
+        }
+
+        #preview-area img {
+            width: 100%;
+            height: auto;
+        }
     </style>
 </head>
 <body>
@@ -73,11 +91,20 @@
                 <input type="file" name="logo" id="logo" required><br><br>
 
                 <label>Выберите иконки:</label><br>
-                <button type="button" id="select-icons">Выбрать иконки</button>
-                <div id="selected-icons"></div> <!-- Контейнер для выбранных иконок -->
+                <!-- Контейнеры для выбранных иконок -->
+                <div id="selected-icon1" class="icon-container"></div>
+                <div id="selected-icon2" class="icon-container"></div>
+                <div id="selected-icon3" class="icon-container"></div>
+
+                <!-- Скрытые поля для хранения выбранных иконок -->
                 <input type="hidden" name="icon1" id="icon1">
                 <input type="hidden" name="icon2" id="icon2">
                 <input type="hidden" name="icon3" id="icon3">
+
+                <!-- Кнопки для вызова модального окна выбора иконок -->
+                <button type="button" onclick="showIconSelectionModal(1)">Выбрать иконку 1</button>
+                <button type="button" onclick="showIconSelectionModal(2)">Выбрать иконку 2</button>
+                <button type="button" onclick="showIconSelectionModal(3)">Выбрать иконку 3</button>
                 <br><br>
 
                 <label for="text1">Текст 1:</label>
@@ -94,8 +121,8 @@
             </form>
         </div>
 
-        <div style="width: 50%; border: 1px solid #000; height: 2258px;">
-            <div id="preview-area" style="width: 100%; height: 100%;">
+        <div id="preview-container">
+            <div id="preview-area">
                 <img src="{{ preview_image_url }}" alt="Default Preview" />
                 <!-- Предпросмотр будет отображаться здесь -->
             </div>
@@ -120,14 +147,8 @@
     <script>
         // JavaScript для обработки выбора иконок
         var modal = document.getElementById("myModal");
-        var btn = document.getElementById("select-icons");
         var span = document.getElementsByClassName("close")[0];
-        var selectedIcons = [];
-
-        btn.onclick = function() {
-            modal.style.display = "block";
-            loadIcons();
-        }
+        var selectedIconIndex = 0; // Индекс выбранной иконки
 
         span.onclick = function() {
             modal.style.display = "none";
@@ -154,19 +175,18 @@
             });
         }
 
+        function showIconSelectionModal(index) {
+            selectedIconIndex = index;
+            modal.style.display = "block";
+            loadIcons();
+        }
+
         function selectIcon(icon) {
-            if (selectedIcons.length < 3 && !selectedIcons.includes(icon)) {
-                selectedIcons.push(icon);
-                document.getElementById('icon' + selectedIcons.length).value = icon;
-
-                var img = document.createElement("img");
-                img.src = "/static/icons/" + icon;
-                document.getElementById("selected-icons").appendChild(img);
-            }
-
-            if (selectedIcons.length >= 3) {
-                modal.style.display = "none"; // Закрыть модальное окно после выбора 3 иконок
-            }
+            document.getElementById('icon' + selectedIconIndex).value = icon;
+            var container = document.getElementById('selected-icon' + selectedIconIndex);
+            container.innerHTML = '<img src="/static/icons/' + icon + '" style="width: 100px;" />';
+            modal.style.display = "none";
+            updatePreview(); // Обновляем предпросмотр после выбора иконки
         }
 
         function updatePreview() {
