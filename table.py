@@ -5,6 +5,8 @@ import re
 import qrcode
 from PIL import Image, ImageDraw, ImageFont
 from werkzeug.datastructures import FileStorage
+import shutil
+import tempfile
 
 app = Flask(__name__, static_folder='static')
 UPLOAD_FOLDER = 'static/uploads'
@@ -158,6 +160,9 @@ def generate_table():
     logo, icon_filenames, text_fields, addresses = get_form_data(request)
     base_url = request.form.get('base_url')  # Получение основного URL из формы
 
+    # Создаем временную папку для хранения изображений
+    temp_dir = tempfile.mkdtemp()
+
     # Создание общего макета таблички (без QR-кода)
     base_image = create_base_layout(logo, icon_filenames, text_fields)
 
@@ -173,12 +178,19 @@ def generate_table():
         y = 850
         table_image.paste(qr_image, (x, y), qr_image)
 
-        # Сохранение изображения с QR-кодом
+        # Сохраняем каждое изображение во временной папке
         image_filename = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', address) + ".png"
-        png_path = os.path.join(app.config['UPLOAD_FOLDER'], image_filename)
-        table_image.save(png_path, format="PNG", dpi=(300, 300))
+        table_image.save(os.path.join(temp_dir, image_filename), format="PNG", dpi=(300, 300))
 
-    return "Таблички успешно созданы!"
+    # Создаем ZIP-архив из сохраненных файлов
+    zip_filename = 'table_images.zip'
+    shutil.make_archive('table_images', 'zip', temp_dir)
+
+    # Удаляем временную папку
+    shutil.rmtree(temp_dir)
+
+    # Отправляем архив пользователю
+    return send_file(zip_filename, as_attachment=True)
 
 if __name__ == '__main__':
     app.run(debug=True)

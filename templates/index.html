@@ -278,10 +278,8 @@
             });
         }
 
-        // JavaScript для отправки данных формы и получения ответа
         document.querySelector('form').addEventListener('submit', function(e) {
             e.preventDefault(); // Предотвращение стандартного действия отправки формы
-
             var submitButton = document.querySelector('input[type="submit"]');
             submitButton.disabled = true; // Делаем кнопку неактивной
 
@@ -289,9 +287,19 @@
             fetch('/generate', {
                 method: 'POST',
                 body: formData
-            }).then(response => response.text())
-              .then(data => {
-                alert(data); // Показываем всплывающее сообщение с ответом сервера
+            }).then(response => response.blob()) // Получаем ответ как Blob
+              .then(blob => {
+                // Создаем URL для Blob
+                var url = window.URL.createObjectURL(blob);
+                // Создаем временный элемент <a>, чтобы скачать файл
+                var a = document.createElement('a');
+                a.style.display = 'none';
+                a.href = url;
+                // Указываем имя файла для скачивания
+                a.download = 'generated_files.zip';
+                document.body.appendChild(a);
+                a.click();
+                window.URL.revokeObjectURL(url);
                 submitButton.disabled = false; // Снова делаем кнопку активной
               })
               .catch(error => {
