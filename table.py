@@ -4,6 +4,7 @@ from io import BytesIO
 import re
 import qrcode
 from PIL import Image, ImageDraw, ImageFont
+from werkzeug.datastructures import FileStorage
 
 app = Flask(__name__, static_folder='static')
 UPLOAD_FOLDER = 'static/uploads'
@@ -43,7 +44,11 @@ def create_base_layout(logo_file, icon_filenames, text_fields):
     table_image = Image.new("RGBA", (2258, 2258), (255, 255, 255, 0))
 
     # Загрузка и изменение размера логотипа
-    logo = Image.open(logo_file.stream)
+    # Проверка типа логотипа и его загрузка
+    if isinstance(logo_file, FileStorage):  # Flask-загруженный файл
+        logo = Image.open(logo_file.stream)
+    else:  # Стандартный файловый объект Python
+        logo = Image.open(logo_file)
     logo = logo.convert("RGBA")  # Преобразование логотипа в формат RGBA
     original_width, original_height = logo.size
     new_height = 200
@@ -79,6 +84,43 @@ def create_base_layout(logo_file, icon_filenames, text_fields):
 
     return table_image
 
+def get_form_data(request):
+    logo = request.files.get('logo')
+    icon_filenames = [
+        request.form.get('icon1'),
+        request.form.get('icon2'),
+        request.form.get('icon3')
+    ]
+    text_fields = [
+        request.form.get('text1'),
+        request.form.get('text2'),
+        request.form.get('text3')
+    ]
+    addresses = request.form.get('addresses', '').splitlines()
+    return logo, icon_filenames, text_fields, [address.strip() for address in addresses if address.strip()]
+
+@app.route('/preview-update', methods=['POST'])
+def preview_update():
+    # Извлечение данных из запроса
+    logo, icon_filenames, text_fields, _ = get_form_data(request)
+
+    print(logo)
+    print(icon_filenames)
+    print(text_fields)
+
+    # logo = 'static/default/logo.png'
+    # icon_filenames = ['call.gif', 'call.png', 'call2.png']
+    # text_fields = ['rtr', 'lol', 'pips']
+
+    # Генерация предпросмотра макета
+    preview_image = create_base_layout(logo, icon_filenames, text_fields)
+
+    # Конвертация изображения в байты и отправка клиенту
+    byte_io = BytesIO()
+    preview_image.save(byte_io, 'PNG')
+    byte_io.seek(0)
+    return send_file(byte_io, mimetype='image/png')
+
 @app.route('/icons')
 def get_icons():
     icons_dir = os.path.join(app.static_folder, 'icons')
@@ -89,17 +131,11 @@ def get_icons():
 def index():
     return render_template('index.html')
 
+
 @app.route('/generate', methods=['POST'])
 def generate_table():
     # Получение данных из формы
-    logo = request.files['logo']
-    icon_filenames = [
-        request.form['icon1'],
-        request.form['icon2'],
-        request.form['icon3']
-    ]
-    text_fields = [request.form['text1'], request.form['text2'], request.form['text3']]
-    addresses = [addr.strip() for addr in request.form['addresses'].split('\n') if addr.strip()]
+    logo, icon_filenames, text_fields, addresses = get_form_data(request)
 
     # Создание общего макета таблички (без QR-кода)
     base_image = create_base_layout(logo, icon_filenames, text_fields)

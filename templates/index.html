@@ -66,30 +66,41 @@
     </style>
 </head>
 <body>
-    <form action="/generate" method="post" enctype="multipart/form-data">
-        <label for="logo">Загрузите логотип:</label>
-        <input type="file" name="logo" id="logo" required><br><br>
+    <div style="display: flex; justify-content: space-between;">
+        <div style="width: 50%;">
+            <form action="/generate" method="post" enctype="multipart/form-data">
+                <label for="logo">Загрузите логотип:</label>
+                <input type="file" name="logo" id="logo" required><br><br>
 
-        <label>Выберите иконки:</label><br>
-        <button type="button" id="select-icons">Выбрать иконки</button>
-        <div id="selected-icons"></div> <!-- Контейнер для выбранных иконок -->
-        <input type="hidden" name="icon1" id="icon1">
-        <input type="hidden" name="icon2" id="icon2">
-        <input type="hidden" name="icon3" id="icon3">
-        <br><br>
+                <label>Выберите иконки:</label><br>
+                <button type="button" id="select-icons">Выбрать иконки</button>
+                <div id="selected-icons"></div> <!-- Контейнер для выбранных иконок -->
+                <input type="hidden" name="icon1" id="icon1">
+                <input type="hidden" name="icon2" id="icon2">
+                <input type="hidden" name="icon3" id="icon3">
+                <br><br>
 
-        <label for="text1">Текст 1:</label>
-        <input type="text" name="text1" id="text1" required><br><br>
-        <label for="text2">Текст 2:</label>
-        <input type="text" name="text2" id="text2" required><br><br>
-        <label for="text3">Текст 3:</label>
-        <input type="text" name="text3" id="text3" required><br><br>
+                <label for="text1">Текст 1:</label>
+                <input type="text" name="text1" id="text1" required><br><br>
+                <label for="text2">Текст 2:</label>
+                <input type="text" name="text2" id="text2" required><br><br>
+                <label for="text3">Текст 3:</label>
+                <input type="text" name="text3" id="text3" required><br><br>
 
-        <label for="addresses">Введите адреса (каждый адрес с новой строки):</label><br>
-        <textarea name="addresses" id="addresses" rows="10" required></textarea><br><br>
+                <label for="addresses">Введите адреса (каждый адрес с новой строки):</label><br>
+                <textarea name="addresses" id="addresses" rows="10" required></textarea><br><br>
 
-        <input type="submit" value="Создать Табличку">
-    </form>
+                <input type="submit" value="Создать Табличку">
+            </form>
+        </div>
+
+        <div style="width: 50%; border: 1px solid #000; height: 2258px;">
+            <div id="preview-area" style="width: 100%; height: 100%;">
+                <img src="{{ preview_image_url }}" alt="Default Preview" />
+                <!-- Предпросмотр будет отображаться здесь -->
+            </div>
+        </div>
+    </div>
 
     <!-- Модальное окно для выбора иконок -->
     <div id="myModal" class="modal">
@@ -157,6 +168,29 @@
                 modal.style.display = "none"; // Закрыть модальное окно после выбора 3 иконок
             }
         }
+
+        function updatePreview() {
+            var formData = new FormData(document.querySelector('form'));
+            fetch('/preview-update', {
+                method: 'POST',
+                body: formData
+            }).then(function(response) {
+                return response.blob();
+            }).then(function(blob) {
+                // Показать изображение в контейнере предпросмотра
+                var url = URL.createObjectURL(blob);
+                document.getElementById('preview-area').innerHTML = '<img src="' + url + '" alt="Preview" style="width: 100%; height: auto;">';
+            });
+        }
+
+        // Подписываемся на события изменения в форме для обновления предпросмотра
+        document.getElementById('logo').addEventListener('change', updatePreview);
+        document.querySelectorAll('input[name^="icon"]').forEach(function(input) {
+            input.addEventListener('change', updatePreview);
+        });
+        document.querySelectorAll('input[name^="text"]').forEach(function(input) {
+            input.addEventListener('change', updatePreview);
+        });
     </script>
 
 </body>
