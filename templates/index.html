@@ -46,6 +46,13 @@
             padding: 10px;
         }
 
+        .modal .icon-container img {
+            max-width: 100px; /* Максимальная ширина изображения */
+            max-height: auto; /* Максимальная высота изображения */
+            width: 100px; /* Автоматическая ширина для сохранения пропорций */
+            height: auto; /* Автоматическая высота для сохранения пропорций */
+        }
+
         .icon-container img {
             border: 2px solid transparent;
             cursor: pointer;
@@ -77,12 +84,29 @@
             transform: scale(1); /* Увеличение при наведении */
         }
 
+        /* Стили для основного flex-контейнера */
+        .flex-container {
+            display: flex;
+            justify-content: left; /* Выравнивание контентов по центру */
+            align-items: flex-start; /* Выравнивание по центру по вертикали */
+            gap: 20px; /* Расстояние между элементами */
+        }
+
+        /* Стили для контейнера формы */
+        .form-container {
+            max-width: 25%; /* Максимальная ширина для предотвращения занимания всего пространства */
+            min-width: 400px; /* Минимальная ширина для контейнера предпросмотра */
+
+        }
+
         #preview-container {
             width: 90vw;
             height: 90vw;
             max-width: 90vh;
             max-height: 90vh;
             border: 1px solid #000;
+            min-width: 300px; /* Минимальная ширина для контейнера предпросмотра */
+
         }
 
         #preview-area {
@@ -94,28 +118,58 @@
             width: 100%;
             height: auto;
         }
+
+        .icon-text-pair {
+            display: flex;
+            align-items: center;
+            margin-bottom: 10px; /* Отступ между парами */
+        }
+
+        .icon-container {
+            margin-right: 10px; /* Отступ между иконкой и текстовым полем */
+        }
+
+        .icon-container img {
+            width: 100px;
+            /* Другие стили для иконок */
+        }
+
     </style>
 </head>
 <body>
-    <div style="display: flex; justify-content: space-between;">
-        <div style="width: 50%;">
+    <div class="flex-container">
+        <div class="form-container">
             <form action="/generate" method="post" enctype="multipart/form-data">
                 <label for="logo">Загрузите логотип:</label><br>
-                <input type="file" name="logo" id="logo" required style="display: none;">
+                <input type="file" name="logo" id="logo" style="display: none;">
                 <div id="logo-preview-container" onclick="document.getElementById('logo').click()" style="cursor: pointer;">
                     <img src="/static/default/logo.png" alt="Default Logo" class="logo-preview" />
                 </div>
 
-                <label>Выберите иконки:</label><br>
-                <!-- Контейнеры для выбранных иконок -->
-                <div id="selected-icon1" class="icon-container">
-                    <img src="/static/default/wifi.png" alt="Default Icon 1" onclick="showIconSelectionModal(1)"/>
+                <label>Выберите иконки и текст:</label><br>
+
+                <!-- Пара иконка-текст 1 -->
+                <div class="icon-text-pair">
+                    <div id="selected-icon1" class="icon-container">
+                        <img src="/static/default/wifi.png" alt="Default Icon 1" onclick="showIconSelectionModal(1)"/>
+                    </div>
+                    <input type="text" name="text1" id="text1" required placeholder="Текст 1">
                 </div>
-                <div id="selected-icon2" class="icon-container">
-                    <img src="/static/default/msg.png" alt="Default Icon 2" onclick="showIconSelectionModal(2)"/>
+
+                <!-- Пара иконка-текст 2 -->
+                <div class="icon-text-pair">
+                    <div id="selected-icon2" class="icon-container">
+                        <img src="/static/default/msg.png" alt="Default Icon 2" onclick="showIconSelectionModal(2)"/>
+                    </div>
+                    <input type="text" name="text2" id="text2" required placeholder="Текст 2">
                 </div>
-                <div id="selected-icon3" class="icon-container">
-                    <img src="/static/default/call.png" alt="Default Icon 3" onclick="showIconSelectionModal(3)"/>
+
+                <!-- Пара иконка-текст 3 -->
+                <div class="icon-text-pair">
+                    <div id="selected-icon3" class="icon-container">
+                        <img src="/static/default/call.png" alt="Default Icon 3" onclick="showIconSelectionModal(3)"/>
+                    </div>
+                    <input type="text" name="text3" id="text3" required placeholder="Текст 3">
                 </div>
 
                 <!-- Скрытые поля для хранения выбранных иконок -->
@@ -123,20 +177,13 @@
                 <input type="hidden" name="icon2" id="icon2">
                 <input type="hidden" name="icon3" id="icon3">
 
-                <label for="text1">Текст 1:</label>
-                <input type="text" name="text1" id="text1" required><br><br>
-                <label for="text2">Текст 2:</label>
-                <input type="text" name="text2" id="text2" required><br><br>
-                <label for="text3">Текст 3:</label>
-                <input type="text" name="text3" id="text3" required><br><br>
-
                 <label for="base-url">Основной URL:</label><br>
                 <input type="text" name="base_url" id="base-url" required><br>
 
                 <label for="addresses">Введите адреса (каждый адрес с новой строки):</label><br>
                 <textarea name="addresses" id="addresses" rows="10" required></textarea><br><br>
 
-                <input type="submit" value="Создать Табличку">
+                <input type="submit" value="Создать Таблички">
             </form>
         </div>
 
@@ -230,6 +277,28 @@
                 document.getElementById('preview-area').innerHTML = '<img src="' + url + '" alt="Preview" style="width: 100%; height: auto;">';
             });
         }
+
+        // JavaScript для отправки данных формы и получения ответа
+        document.querySelector('form').addEventListener('submit', function(e) {
+            e.preventDefault(); // Предотвращение стандартного действия отправки формы
+
+            var submitButton = document.querySelector('input[type="submit"]');
+            submitButton.disabled = true; // Делаем кнопку неактивной
+
+            var formData = new FormData(this);
+            fetch('/generate', {
+                method: 'POST',
+                body: formData
+            }).then(response => response.text())
+              .then(data => {
+                alert(data); // Показываем всплывающее сообщение с ответом сервера
+                submitButton.disabled = false; // Снова делаем кнопку активной
+              })
+              .catch(error => {
+                console.error('Error:', error);
+                submitButton.disabled = false; // Снова делаем кнопку активной в случае ошибки
+              });
+        });
 
         document.getElementById('logo').addEventListener('change', updatePreview);
         document.querySelectorAll('input[name^="icon"]').forEach(function(input) {

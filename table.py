@@ -16,7 +16,7 @@ def create_qr_code(url):
         version=1,
         error_correction=qrcode.constants.ERROR_CORRECT_L,
         box_size=10,
-        border=4,
+        border=0,
     )
     qr.add_data(url)
     qr.make(fit=True)
@@ -51,7 +51,7 @@ def create_base_layout(logo_file, icon_filenames, text_fields):
         logo = Image.open(logo_file)
     logo = logo.convert("RGBA")  # Преобразование логотипа в формат RGBA
     original_width, original_height = logo.size
-    new_height = 200
+    new_height = 250
     new_width = int(original_width * (new_height / original_height))
     logo = logo.resize((new_width, new_height), Image.Resampling.LANCZOS)
 
@@ -84,7 +84,7 @@ def create_base_layout(logo_file, icon_filenames, text_fields):
     draw = ImageDraw.Draw(table_image)
     try:
         # Попытка использовать шрифт Times New Roman, если он установлен
-        font = ImageFont.truetype("times.ttf", 150)
+        font = ImageFont.truetype("times.ttf", 120)
     except IOError:
         # Использование стандартного шрифта, если Times New Roman недоступен
         font = ImageFont.load_default()
@@ -123,10 +123,6 @@ def preview_update():
     # Извлечение данных из запроса
     logo, icon_filenames, text_fields, _ = get_form_data(request)
 
-    print(logo)
-    print(icon_filenames)
-    print(text_fields)
-
     # Генерация предпросмотра макета
     preview_image = create_base_layout(logo, icon_filenames, text_fields)
 
@@ -162,12 +158,6 @@ def generate_table():
     logo, icon_filenames, text_fields, addresses = get_form_data(request)
     base_url = request.form.get('base_url')  # Получение основного URL из формы
 
-
-    print(logo)
-    print(icon_filenames)
-    print(text_fields)
-    print(addresses)
-
     # Создание общего макета таблички (без QR-кода)
     base_image = create_base_layout(logo, icon_filenames, text_fields)
 
@@ -176,7 +166,7 @@ def generate_table():
         full_url = f"{base_url}{address}"  # Формирование полного URL
         table_image = base_image.copy()
         qr_image = create_qr_code(full_url)  # Создание QR-кода для полного URL
-        qr_image = qr_image.resize((800, 800), Image.Resampling.LANCZOS)
+        qr_image = qr_image.resize((600, 600), Image.Resampling.LANCZOS)
 
         # Выравнивание QR-кода по центру и 850 пикселей от верха
         x = (table_image.width - qr_image.width) // 2
