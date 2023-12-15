@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, send_file, url_for, jsonify
+from flask import Flask, render_template, request, send_file, url_for, jsonify, after_this_request, Response, stream_with_context
 import os
 from io import BytesIO
 import re
@@ -7,6 +7,9 @@ from PIL import Image, ImageDraw, ImageFont
 from werkzeug.datastructures import FileStorage
 import shutil
 import tempfile
+import uuid
+import zipfile
+import io
 
 app = Flask(__name__, static_folder='static')
 UPLOAD_FOLDER = 'static/uploads'
@@ -160,37 +163,44 @@ def generate_table():
     logo, icon_filenames, text_fields, addresses = get_form_data(request)
     base_url = request.form.get('base_url')  # Получение основного URL из формы
 
-    # Создаем временную папку для хранения изображений
-    temp_dir = tempfile.mkdtemp()
-
-    # Создание общего макета таблички (без QR-кода)
+    # Создаем основное изображение
     base_image = create_base_layout(logo, icon_filenames, text_fields)
 
-    # Для каждого адреса создаем уникальный QR-код и накладываем его на макет
-    for address in addresses:
-        full_url = f"{base_url}{address}"  # Формирование полного URL
-        table_image = base_image.copy()
-        qr_image = create_qr_code(full_url)  # Создание QR-кода для полного URL
-        qr_image = qr_image.resize((600, 600), Image.Resampling.LANCZOS)
+    # Создаем BytesIO объект для хранения ZIP-файла
+    memory_file = BytesIO()
+    with zipfile.ZipFile(memory_file, 'w') as zf:
+        # Для каждого адреса создаем QR код и добавляем в ZIP
+        for address in addresses:
+            full_url = f"{base_url}{address}"  # Формирование полного URL
+            table_image = base_image.copy()
+            qr_image = create_qr_code(full_url)  # Создание QR-кода для полного URL
+            qr_image = qr_image.resize((600, 600), Image.Resampling.LANCZOS)
 
-        # Выравнивание QR-кода по центру и 850 пикселей от верха
-        x = (table_image.width - qr_image.width) // 2
-        y = 850
-        table_image.paste(qr_image, (x, y), qr_image)
+            # Выравнивание QR-кода по центру и 850 пикселей от верха
+            x = (table_image.width - qr_image.width) // 2
+            y = 850
+            table_image.paste(qr_image, (x, y), qr_image)
 
-        # Сохраняем каждое изображение во временной папке
-        image_filename = re.sub(r'[<>:"/\\|?*\x00-\x1F]', '', address) + ".png"
-        table_image.save(os.path.join(temp_dir, image_filename), format="PNG", dpi=(300, 300))
+            # Сохраняем изображение в BytesIO объект
+            img_byte_arr = BytesIO()
+            table_image.save(img_byte_arr, format='PNG')
+            img_byte_arr.seek(0)
+            zf.writestr(f'{address}.png', img_byte_arr.getvalue())
 
-    # Создаем ZIP-архив из сохраненных файлов
-    zip_filename = 'table_images.zip'
-    shutil.make_archive('table_images', 'zip', temp_dir)
+    memory_file.seek(0)
 
-    # Удаляем временную папку
-    shutil.rmtree(temp_dir)
+    def generate():
+        with memory_file:
+            yield memory_file.getvalue()
 
-    # Отправляем архив пользователю
-    return send_file(zip_filename, as_attachment=True)
+    return Response(
+        stream_with_context(generate()),
+        mimetype='application/zip',
+        headers={
+            'Content-Disposition': 'attachment; filename=table_images.zip'
+        }
+    )
+
 
 if __name__ == '__main__':
     app.run(debug=True)
