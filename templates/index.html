@@ -119,11 +119,9 @@
                 </div>
 
                 <!-- Скрытые поля для хранения выбранных иконок -->
-                <input type="hidden" name="icon1" id="icon1" value="default-icon1.png">
-                <input type="hidden" name="icon2" id="icon2" value="default-icon2.png">
-                <input type="hidden" name="icon3" id="icon3" value="default-icon3.png">
-
-                <br><br>
+                <input type="hidden" name="icon1" id="icon1">
+                <input type="hidden" name="icon2" id="icon2">
+                <input type="hidden" name="icon3" id="icon3">
 
                 <label for="text1">Текст 1:</label>
                 <input type="text" name="text1" id="text1" required><br><br>
@@ -131,6 +129,9 @@
                 <input type="text" name="text2" id="text2" required><br><br>
                 <label for="text3">Текст 3:</label>
                 <input type="text" name="text3" id="text3" required><br><br>
+
+                <label for="base-url">Основной URL:</label><br>
+                <input type="text" name="base_url" id="base-url" required><br>
 
                 <label for="addresses">Введите адреса (каждый адрес с новой строки):</label><br>
                 <textarea name="addresses" id="addresses" rows="10" required></textarea><br><br>
@@ -258,6 +259,8 @@
 
         document.addEventListener('DOMContentLoaded', function() {
             setIconClickHandlers(); // Инициализация обработчиков при загрузке страницы
+            // Показ изображений по умолчанию для логотипа и иконок
+            updatePreview()
         });
 
     </script>

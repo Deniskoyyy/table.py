@@ -64,7 +64,10 @@ def create_base_layout(logo_file, icon_filenames, text_fields):
     icon_coords = [(650, 600), (650, 1630), (650, 1860)]
 
     for icon_filename, (x, y) in zip(icon_filenames, icon_coords):
-        icon_path = os.path.join(app.static_folder, 'icons', icon_filename)
+        if "default/" in icon_filename:
+            icon_path = os.path.join(app.static_folder, icon_filename)
+        else:
+            icon_path = os.path.join(app.static_folder, 'icons', icon_filename)
         icon = Image.open(icon_path).convert("RGBA")
 
         # Изменение размера иконки
@@ -93,16 +96,24 @@ def create_base_layout(logo_file, icon_filenames, text_fields):
     return table_image
 
 def get_form_data(request):
-    logo = request.files.get('logo')
+    # Значения по умолчанию
+
+    default_logo_path = 'static/default/logo.png'
+    default_icon_paths = ['default/wifi.png', 'default/msg.png', 'default/call.png']
+
+    # Получение логотипа или использование логотипа по умолчанию
+    logo = request.files.get('logo') or default_logo_path
+
+    # Получение иконок или использование иконок по умолчанию
     icon_filenames = [
-        request.form.get('icon1'),
-        request.form.get('icon2'),
-        request.form.get('icon3')
+        request.form.get('icon1') or default_icon_paths[0],
+        request.form.get('icon2') or default_icon_paths[1],
+        request.form.get('icon3') or default_icon_paths[2]
     ]
     text_fields = [
-        request.form.get('text1'),
-        request.form.get('text2'),
-        request.form.get('text3')
+        request.form.get('text1') or "Текст 1",
+        request.form.get('text2') or "Текст 2",
+        request.form.get('text3') or "Текст 3"
     ]
     addresses = request.form.get('addresses', '').splitlines()
     return logo, icon_filenames, text_fields, [address.strip() for address in addresses if address.strip()]
@@ -116,12 +127,17 @@ def preview_update():
     print(icon_filenames)
     print(text_fields)
 
-    # logo = 'static/default/logo.png'
-    # icon_filenames = ['call.gif', 'call.png', 'call2.png']
-    # text_fields = ['rtr', 'lol', 'pips']
-
     # Генерация предпросмотра макета
     preview_image = create_base_layout(logo, icon_filenames, text_fields)
+
+    # Загрузка QR-кода по умолчанию
+    qr_default_path = os.path.join(app.static_folder, 'default', 'qr.png')
+    qr_image = Image.open(qr_default_path).convert("RGBA")
+
+    # Выравнивание QR-кода по центру и 850 пикселей от верха
+    x = (preview_image.width - qr_image.width) // 2
+    y = 850
+    preview_image.paste(qr_image, (x, y), qr_image)
 
     # Конвертация изображения в байты и отправка клиенту
     byte_io = BytesIO()
@@ -144,19 +160,27 @@ def index():
 def generate_table():
     # Получение данных из формы
     logo, icon_filenames, text_fields, addresses = get_form_data(request)
+    base_url = request.form.get('base_url')  # Получение основного URL из формы
+
+
+    print(logo)
+    print(icon_filenames)
+    print(text_fields)
+    print(addresses)
 
     # Создание общего макета таблички (без QR-кода)
     base_image = create_base_layout(logo, icon_filenames, text_fields)
 
     # Для каждого адреса создаем уникальный QR-код и накладываем его на макет
     for address in addresses:
+        full_url = f"{base_url}{address}"  # Формирование полного URL
         table_image = base_image.copy()
-        qr_image = create_qr_code(address)
-        qr_image = qr_image.resize((600, 600), Image.Resampling.LANCZOS)
+        qr_image = create_qr_code(full_url)  # Создание QR-кода для полного URL
+        qr_image = qr_image.resize((800, 800), Image.Resampling.LANCZOS)
 
-        # Выравнивание QR-кода по центру и 950 пикселей от верха
+        # Выравнивание QR-кода по центру и 850 пикселей от верха
         x = (table_image.width - qr_image.width) // 2
-        y = 950
+        y = 850
         table_image.paste(qr_image, (x, y), qr_image)
 
         # Сохранение изображения с QR-кодом
