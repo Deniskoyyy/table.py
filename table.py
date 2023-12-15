@@ -66,8 +66,16 @@ def create_base_layout(logo_file, icon_filenames, text_fields):
     for icon_filename, (x, y) in zip(icon_filenames, icon_coords):
         icon_path = os.path.join(app.static_folder, 'icons', icon_filename)
         icon = Image.open(icon_path).convert("RGBA")
-        # Можно добавить изменение размера иконки, если это необходимо
-        table_image.paste(icon, (x - icon.width // 2, y), icon)
+
+        # Изменение размера иконки
+        original_width, original_height = icon.size
+        new_width = 200
+        new_height = int(original_height * (new_width / original_width))
+        icon = icon.resize((new_width, new_height), Image.Resampling.LANCZOS)
+
+        # Наложение иконки с учетом новых размеров
+        x = x - new_width // 2  # Центрирование иконки по горизонтали
+        table_image.paste(icon, (x, y), icon)
 
     # Добавление текста
     draw = ImageDraw.Draw(table_image)

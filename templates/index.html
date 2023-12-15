@@ -50,7 +50,7 @@
             border: 2px solid transparent;
             cursor: pointer;
             width: 100px;
-            transform: scale(0.8); /* Уменьшение размера иконок вдвое */
+            transform: scale(0.8); /* Уменьшение размера иконок */
             transition: transform 0.3s ease; /* Добавление плавного эффекта при наведении */
             margin: 0; /* Сброс внешних отступов */
             padding: 0; /* Сброс внутренних отступов */
@@ -62,6 +62,19 @@
 
         .icon-container img.selected {
             border-color: #4CAF50;
+        }
+
+        .logo-preview {
+            border: 2px solid transparent;
+            cursor: pointer;
+            max-width: 200px;
+            max-height: 200px;
+            transform: scale(0.8); /* Уменьшение размера логотипа вдвое */
+            transition: transform 0.3s ease; /* Плавный эффект при наведении */
+        }
+
+        .logo-preview:hover {
+            transform: scale(1); /* Увеличение при наведении */
         }
 
         #preview-container {
@@ -87,24 +100,29 @@
     <div style="display: flex; justify-content: space-between;">
         <div style="width: 50%;">
             <form action="/generate" method="post" enctype="multipart/form-data">
-                <label for="logo">Загрузите логотип:</label>
-                <input type="file" name="logo" id="logo" required><br><br>
+                <label for="logo">Загрузите логотип:</label><br>
+                <input type="file" name="logo" id="logo" required style="display: none;">
+                <div id="logo-preview-container" onclick="document.getElementById('logo').click()" style="cursor: pointer;">
+                    <img src="/static/default/logo.png" alt="Default Logo" class="logo-preview" />
+                </div>
 
                 <label>Выберите иконки:</label><br>
                 <!-- Контейнеры для выбранных иконок -->
-                <div id="selected-icon1" class="icon-container"></div>
-                <div id="selected-icon2" class="icon-container"></div>
-                <div id="selected-icon3" class="icon-container"></div>
+                <div id="selected-icon1" class="icon-container">
+                    <img src="/static/default/wifi.png" alt="Default Icon 1" onclick="showIconSelectionModal(1)"/>
+                </div>
+                <div id="selected-icon2" class="icon-container">
+                    <img src="/static/default/msg.png" alt="Default Icon 2" onclick="showIconSelectionModal(2)"/>
+                </div>
+                <div id="selected-icon3" class="icon-container">
+                    <img src="/static/default/call.png" alt="Default Icon 3" onclick="showIconSelectionModal(3)"/>
+                </div>
 
                 <!-- Скрытые поля для хранения выбранных иконок -->
-                <input type="hidden" name="icon1" id="icon1">
-                <input type="hidden" name="icon2" id="icon2">
-                <input type="hidden" name="icon3" id="icon3">
+                <input type="hidden" name="icon1" id="icon1" value="default-icon1.png">
+                <input type="hidden" name="icon2" id="icon2" value="default-icon2.png">
+                <input type="hidden" name="icon3" id="icon3" value="default-icon3.png">
 
-                <!-- Кнопки для вызова модального окна выбора иконок -->
-                <button type="button" onclick="showIconSelectionModal(1)">Выбрать иконку 1</button>
-                <button type="button" onclick="showIconSelectionModal(2)">Выбрать иконку 2</button>
-                <button type="button" onclick="showIconSelectionModal(3)">Выбрать иконку 3</button>
                 <br><br>
 
                 <label for="text1">Текст 1:</label>
@@ -145,7 +163,7 @@
     {% endif %}
 
     <script>
-        // JavaScript для обработки выбора иконок
+       // JavaScript для обработки выбора иконок
         var modal = document.getElementById("myModal");
         var span = document.getElementsByClassName("close")[0];
         var selectedIconIndex = 0; // Индекс выбранной иконки
@@ -175,18 +193,28 @@
             });
         }
 
-        function showIconSelectionModal(index) {
-            selectedIconIndex = index;
+        function showIconSelectionModal(iconIndex) {
+            selectedIconIndex = iconIndex;
             modal.style.display = "block";
             loadIcons();
         }
 
+        function setIconClickHandlers() {
+            for (let i = 1; i <= 3; i++) {
+                const iconContainer = document.getElementById('selected-icon' + i);
+                const img = iconContainer.querySelector('img');
+                if (img) {
+                    img.onclick = function() { showIconSelectionModal(i); };
+                }
+            }
+        }
+
         function selectIcon(icon) {
             document.getElementById('icon' + selectedIconIndex).value = icon;
-            var container = document.getElementById('selected-icon' + selectedIconIndex);
-            container.innerHTML = '<img src="/static/icons/' + icon + '" style="width: 100px;" />';
+            document.getElementById('selected-icon' + selectedIconIndex).innerHTML = '<img src="/static/icons/' + icon + '" />';
+            setIconClickHandlers(); // Установка обработчиков событий для новых иконок
             modal.style.display = "none";
-            updatePreview(); // Обновляем предпросмотр после выбора иконки
+            updatePreview();
         }
 
         function updatePreview() {
@@ -197,13 +225,11 @@
             }).then(function(response) {
                 return response.blob();
             }).then(function(blob) {
-                // Показать изображение в контейнере предпросмотра
                 var url = URL.createObjectURL(blob);
                 document.getElementById('preview-area').innerHTML = '<img src="' + url + '" alt="Preview" style="width: 100%; height: auto;">';
             });
         }
 
-        // Подписываемся на события изменения в форме для обновления предпросмотра
         document.getElementById('logo').addEventListener('change', updatePreview);
         document.querySelectorAll('input[name^="icon"]').forEach(function(input) {
             input.addEventListener('change', updatePreview);
@@ -211,6 +237,29 @@
         document.querySelectorAll('input[name^="text"]').forEach(function(input) {
             input.addEventListener('change', updatePreview);
         });
+
+        document.getElementById('logo').addEventListener('change', function(event) {
+            if (event.target.files && event.target.files[0]) {
+                var reader = new FileReader();
+
+                reader.onload = function(e) {
+                    var img = document.createElement("img");
+                    img.src = e.target.result;
+                    img.className = "logo-preview"; // Применение класса для стилей
+
+                    var container = document.getElementById('logo-preview-container');
+                    container.innerHTML = ''; // Очистка контейнера перед добавлением нового изображения
+                    container.appendChild(img); // Добавление изображения в контейнер
+                }
+
+                reader.readAsDataURL(event.target.files[0]);
+            }
+        });
+
+        document.addEventListener('DOMContentLoaded', function() {
+            setIconClickHandlers(); // Инициализация обработчиков при загрузке страницы
+        });
+
     </script>
 
 </body>
